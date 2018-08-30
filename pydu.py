@@ -22,29 +22,54 @@ class Resource:
 	def __init__(self,resource):
 		# resource is a string: [name].[ext]
 		ressplit = resource.split('.')
+		self.resource = resource
 		self.resref = ressplit[0]
 		self.ext = ressplit[1]
 		self.file = get(resource)
 		self.size = os.path.getsize(self.file)
 
-	def read_resref(self,offset):
+	def delete_override(self):
+		os.remove(self.file)
+
+	# call this only at the end of an install/component
+	def delete_unchanged(self):
+		with open(self.file,'rb') as f:
+			override_data = f.read(self.size)
+			base_data = keydata.get((self.resource).upper())
+			if override_data == base_data: 
+				unchanged = True 
+		if unchanged: 
+			self.delete_override()
+
+	def copy_as(self,name):
+		with open(self.file,'rb') as f:
+			data = f.read(self.size)
+			file = open(path.join(path.abspath(path.dirname(__file__)),'override',name),'wb')
+			file.write(data)
+			file.close()
+
+
+	def read_ascii(self,offset,length=8):
 		# offset is a number (in decimal or 0x.. format)
 		with open(self.file,'rb') as f:
 			f.seek(offset)
-			return f.read(8).decode('utf-8')
+			return f.read(length).decode('ascii')
 
-	def write_resref(self,offset,value):
+	def write_ascii(self,offset,value,length=8):
 		# offset is a number (in decimal or 0x.. format)
 		with open(self.file,'r+b') as f:
 			f.seek(offset)
-			f.write(pack('8s',value.encode('utf-8')))
+			f.write(pack(str(length)+'s',value.encode('ascii')))
 			f.close()
 
-	def read_byte(self,offset):
+	def read_byte(self,offset,signed=False):
 		# offset is a number (in decimal or 0x.. format)
 		with open(self.file,'rb') as f:
 			f.seek(offset)
-			return unpack('B',f.read(1))[0]
+			if signed:
+				return unpack('b',f.read(1))[0]
+			else: 
+				return unpack('B',f.read(1))[0]
 
 	def write_byte(self,offset,value):
 		# offset is a number (in decimal or 0x.. format)
@@ -52,11 +77,43 @@ class Resource:
 			f.seek(offset)
 			f.write(pack('B',value))
 			f.close()
+
+	def read_short(self,offset,signed=False):
+		# offset is a number (in decimal or 0x.. format)
+		with open(self.file,'rb') as f:
+			f.seek(offset)
+			if signed:
+				return unpack('h',f.read(2))[0]
+			else:
+				return unpack('H',f.read(2))[0]
+
+	def write_short(self,offset,value):
+		# offset is a number (in decimal or 0x.. format)
+		with open(self.file,'r+b') as f:
+			f.seek(offset)
+			f.write(pack('H',value))
+			f.close()
+
+	def read_long(self,offset,signed=False):
+		# offset is a number (in decimal or 0x.. format)
+		with open(self.file,'rb') as f:
+			f.seek(offset)
+			if signed:
+				return unpack('l',f.read(4))[0]
+			else:
+				return unpack('L',f.read(4))[0]
+
+	def write_long(self,offset,value):
+		# offset is a number (in decimal or 0x.. format)
+		with open(self.file,'r+b') as f:
+			f.seek(offset)
+			f.write(pack('L',value))
+			f.close()
 			
 def read_key(key):
 	with open(key,"r+b") as f:
 		# HEADER
-		sigver = f.read(8).decode('utf-8')
+		sigver = f.read(8).decode('ascii')
 		if sigver != 'KEY V1  ':
 			raise ValueError('Invalid KEY signature')
 		f.seek(8)
@@ -73,7 +130,7 @@ def read_key(key):
 		keyresources = list()
 		for i in range(0,rescount):
 			f.seek(resoff + 14 * i)
-			resname = unpack('8s',f.read(8))[0].decode('utf-8')
+			resname = unpack('8s',f.read(8))[0].decode('ascii')
 			f.seek(resoff + 14 * i + 8)
 			restype = unpack('H',f.read(2))[0] 
 			f.seek(resoff + 14 * i + 10)
@@ -100,7 +157,7 @@ def read_key(key):
 			f.seek(bifoff + 12 * i + 10)
 			biflocflag = unpack('H',f.read(2))[0]
 			f.seek(bifnameoff)
-			bifname = unpack(str(bifnamelength-1)+'s',f.read(bifnamelength-1))[0].decode('utf-8')
+			bifname = unpack(str(bifnamelength-1)+'s',f.read(bifnamelength-1))[0].decode('ascii')
 			#print(type(bifname))
 			keybifs.append((bifname,i,biflength,biflocflag))
 			bif_indices[i] = bifname
@@ -132,7 +189,7 @@ def read_bif(bif):
 	with open(bif,"r+b") as f:
 		#print(type(bif))
 		# HEADER
-		sigver = f.read(8).decode('utf-8')
+		sigver = f.read(8).decode('ascii')
 		if sigver != 'BIFFV1  ':
 			raise ValueError('Invalid decompressed BIFF signature')
 		f.seek(8)
@@ -232,43 +289,17 @@ if __name__ == '__main__':
 
 	Accalia = Resource('Accalia.cre')
 	print(Accalia.resref,Accalia.ext,Accalia.file,Accalia.size)
-	print(Accalia.read_resref(0x2cc))
+	print(Accalia.read_ascii(0x2cc))
 	#print(Accalia.resref,Accalia.ext,Accalia.file,Accalia.size)
-	print(Accalia.write_resref(0x2cc,'andrewwwwww'))
+	print(Accalia.write_ascii(0x2cc,'ANDREWWWW'))
+	#Accalia.delete_unchanged()
 	#print(Accalia.resref,Accalia.ext,Accalia.file,Accalia.size)
-	print(Accalia.read_resref(0x2cc))
+	print(Accalia.read_ascii(0x2cc))
 	print(Accalia.read_byte(0x2c))
 	Accalia.write_byte(0x2c,155)
 	print(Accalia.read_byte(0x2c))
+	Accalia.copy_as('Accalia2.cre')
 
-	'''
-	get('ad3sklm.cre')
-	get('andrew.cre')
-
-	print(time.time()-t)
-
-	with open(res,"r+b") as f:
-		sigver = f.read(8).decode('utf-8')
-		print(sigver)
-		f.seek(0x2cc)
-		f.write(pack('8s','andrew'.encode('utf-8')))
-		f.seek(0x2cc)
-		print(unpack('8s',f.read(8))[0].decode('utf-8'))
-	'''
-
-'''
-print(res)
-with open(res,'rb') as f:
-	print(type(f))
-	f.seek(24)
-	tilesize = unpack('L',f.read(4))[0]
-	print(tilesize)
-'''
-#print(accalia.decode('ascii'))
-
-# save_to_override('accalia.cre',accalia)
-#print(time.time() - t)
-
-# goals 
-## perform functions similar to weidu, but within python 
-## allow for extension into a user interface like NI that can generate weidu code from changes
+	Accalia2 =
+	# Accalia.delete_override()
+	print(type(Accalia))
