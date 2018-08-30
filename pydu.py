@@ -299,7 +299,3 @@ if __name__ == '__main__':
 	Accalia.write_byte(0x2c,155)
 	print(Accalia.read_byte(0x2c))
 	Accalia.copy_as('Accalia2.cre')
-
-	Accalia2 =
-	# Accalia.delete_override()
-	print(type(Accalia))
