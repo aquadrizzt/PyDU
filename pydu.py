@@ -5,15 +5,56 @@ from os import path
 import mmap 
 
 # print("Welcome to PyDU, the Python-based Dialog Utility")
-'''
-class GameData(): 
 
-	def __init__(self,key):
-		self.data = read_key(key) 
-
-	def get_resource_raw(self,resource):
-		return self.data.get(resource.upper())
-'''
+ResourceTypeID = {
+	1 : 'BMP',
+	2 : 'MVE', 
+	4 : 'WAV',
+	5 : 'WFX',
+	6 : 'PLT',
+	952 : 'TGA',
+	1000 : 'BAM',
+	1001 : 'WED',
+	1002 : 'CHU',
+	1003 : 'TIS',
+	1004 : 'MOS',
+	1005 : 'ITM',
+	1006 : 'SPL',
+	1007 : 'BCS',
+	1008 : 'IDS',
+	1009 : 'CRE',
+	1010 : 'ARE',
+	1011 : 'DLG',
+	1012 : '2DA',
+	1013 : 'GAM',
+	1014 : 'STO',
+	1015 : 'WMP',
+	1016 : 'EFF',
+	1017 : 'BS',
+	1018 : 'CHR',
+	1019 : 'VVC',
+	1020 : 'VEF',
+	1021 : 'PRO',
+	1022 : 'BIO',
+	1023 : 'WBM',
+	1024 : 'FNT',
+	1026 : 'GUI',
+	1027 : 'SQL',
+	1028 : 'PVRZ',
+	1029 : 'GLSL',
+	1030 : 'TOT',
+	1031 : 'TOH',
+	1032 : 'MENU',
+	1033 : 'LUA',
+	1034 : 'TTF',
+	1035 : 'PNG',
+	1100 : 'BAH',
+	2050 : 'INI',
+	2051 : 'SRC',
+	2052 : 'MAZE',
+	4094 : 'MUS',
+	4095 : 'ACM',
+}
 
 class Resource: 
 	# name, type, location, size 
@@ -138,7 +179,7 @@ def read_key(key):
 			bifindex = reslocator>>20
 			reslocator_nobif = reslocator - (bifindex << 20)
 			if reslocator_nobif >> 14:
-				resindex = reslocator_nobif >> 14 
+				resindex = reslocator_nobif 
 			else:
 				resindex = reslocator_nobif
 			keyresources.append((resname,restype,bifindex,resindex))
@@ -176,9 +217,15 @@ def read_key(key):
 			restype = res[1]
 			bifindex = res[2]
 			resindex = res[3] 
-			if restype == 0x3f1: #creature 
-				filename = resname.rstrip('\x00').upper()+'.CRE'
+			if ResourceTypeID.get(restype) == 'TIS':
+				#filename = resname.rstrip('\x00').upper()+'.'+ResourceTypeID.get(restype)
+				#res_data[filename] = key_data[bifindex][resindex]
+				pass
+			elif ResourceTypeID.get(restype):
+				filename = resname.rstrip('\x00').upper()+'.'+ResourceTypeID.get(restype)
 				res_data[filename] = key_data[bifindex][resindex]
+			else: 
+				print('Invalid file type: ',resname, restype, format(restype,'03x'))
 
 	return res_data 
 	#print(resname,restype,bif_indices[bifindex])
@@ -286,7 +333,7 @@ if __name__ == '__main__':
 	t = time.time()
 	global keydata 
 	keydata = read_key('chitin.key')
-
+	print(time.time()-t)
 	Accalia = Resource('Accalia.cre')
 	print(Accalia.resref,Accalia.ext,Accalia.file,Accalia.size)
 	print(Accalia.read_ascii(0x2cc))
@@ -299,3 +346,5 @@ if __name__ == '__main__':
 	Accalia.write_byte(0x2c,155)
 	print(Accalia.read_byte(0x2c))
 	Accalia.copy_as('Accalia2.cre')
+
+	# Accalia2 = Resource('Accalia2.cre')
